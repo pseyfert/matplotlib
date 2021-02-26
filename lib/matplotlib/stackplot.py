@@ -60,7 +60,7 @@ def stackplot(axes, x, *args,
 
     y = np.row_stack(args)
 
-    labels = iter(labels)
+    labels = reversed(labels)
     if colors is not None:
         axes.set_prop_cycle(color=colors)
 
@@ -99,18 +99,22 @@ def stackplot(axes, x, *args,
         first_line = center - 0.5 * total
         stack += first_line
 
+    r = []
+    reverse_colors = reversed([axes._get_lines.get_next_color()
+                               for i in range(len(y))])
+    # Color between array i-1 and array i
+    for i in reversed(range(len(y) - 1)):
+        color = next(reverse_colors)
+        r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
+                                   facecolor=color, label=next(labels, None),
+                                   **kwargs))
+
     # Color between x = 0 and the first array.
-    color = axes._get_lines.get_next_color()
+    color = next(reverse_colors)
     coll = axes.fill_between(x, first_line, stack[0, :],
                              facecolor=color, label=next(labels, None),
                              **kwargs)
     coll.sticky_edges.y[:] = [0]
-    r = [coll]
+    r.append(coll)
 
-    # Color between array i-1 and array i
-    for i in range(len(y) - 1):
-        color = axes._get_lines.get_next_color()
-        r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
-                                   facecolor=color, label=next(labels, None),
-                                   **kwargs))
-    return r
+    return list(reversed(r))
