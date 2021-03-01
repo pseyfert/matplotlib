@@ -14,7 +14,7 @@ __all__ = ['stackplot']
 
 
 def stackplot(axes, x, *args,
-              labels=(), colors=None, baseline='zero',
+              labels=(), top_to_bottom=False, colors=None, baseline='zero',
               **kwargs):
     """
     Draw a stacked area plot.
@@ -60,7 +60,8 @@ def stackplot(axes, x, *args,
 
     y = np.row_stack(args)
 
-    labels = reversed(labels)
+    iter_method = reversed if top_to_bottom else iter
+    labels = iter_method(labels)
     if colors is not None:
         axes.set_prop_cycle(color=colors)
 
@@ -100,21 +101,30 @@ def stackplot(axes, x, *args,
         stack += first_line
 
     r = []
-    reverse_colors = reversed([axes._get_lines.get_next_color()
+    colors = iter_method([axes._get_lines.get_next_color()
                                for i in range(len(y))])
-    # Color between array i-1 and array i
-    for i in reversed(range(len(y) - 1)):
-        color = next(reverse_colors)
-        r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
-                                   facecolor=color, label=next(labels, None),
-                                   **kwargs))
 
-    # Color between x = 0 and the first array.
-    color = next(reverse_colors)
-    coll = axes.fill_between(x, first_line, stack[0, :],
-                             facecolor=color, label=next(labels, None),
-                             **kwargs)
-    coll.sticky_edges.y[:] = [0]
-    r.append(coll)
+    def bottom_area():
+        # Color between x = 0 and the first array.
+        color = next(colors)
+        coll = axes.fill_between(x, first_line, stack[0, :],
+                                 facecolor=color, label=next(labels, None),
+                                 **kwargs)
+        coll.sticky_edges.y[:] = [0]
+        r.append(coll)
 
-    return list(reversed(r))
+    def not_bottom_area():
+        # Color between array i-1 and array i
+        for i in iter_method(range(len(y) - 1)):
+            color = next(colors)
+            r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
+                                       facecolor=color, label=next(labels, None),
+                                       **kwargs))
+    if top_to_bottom:
+        not_bottom_area()
+        bottom_area()
+    else:
+        bottom_area()
+        not_bottom_area()
+
+    return list(iter_method(r))
