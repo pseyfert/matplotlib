@@ -118,7 +118,8 @@ def stackplot(axes, x, *args,
         for i in iter_method(range(len(y) - 1)):
             color = next(colors)
             r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
-                                       facecolor=color, label=next(labels, None),
+                                       facecolor=color,
+                                       label=next(labels, None),
                                        **kwargs))
     if top_to_bottom:
         not_bottom_area()
